@@ -1,0 +1,30 @@
+{
+    "configurations": [
+        {
+            "name": "Mac",
+            "includePath": [
+                "usr/local/Cellar/boost/1.72.0_1/include/",
+                "/usr/local/Cellar/openssl/1.0.2r/include/",
+                "${workspaceFolder}/**"
+            ],
+            "browse": {
+                "limitSymbolsToIncludedHeaders": true,
+                "databaseFilename": "",
+                "path": [
+                    "usr/local/Cellar/boost/1.72.0_1/include/",
+                    "/usr/local/Cellar/openssl/1.0.2r/include/",
+                    "${workspaceFolder}/**"
+                ]
+            },
+            "defines": ["_DEBUG", "UNICODE", "_UNICODE"],
+            "macFrameworkPath": [
+                "/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/System/Library/Frameworks"
+            ],
+            "compilerPath": "/usr/bin/clang",
+            "cStandard": "c11",
+            "cppStandard": "c++17",
+            "intelliSenseMode": "clang-x64"
+        }
+    ],
+    "version": 4
+}

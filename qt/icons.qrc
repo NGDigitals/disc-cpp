@@ -1,0 +1,11 @@
+<RCC>
+    <qresource prefix="">
+        <file>icons/ic_arrow_down_thick_blue.png</file>
+        <file>icons/ic_arrow_left_thick_green.png</file>
+        <file>icons/ic_arrow_left_thick_grey.png</file>
+        <file>icons/ic_arrow_right_thick_grey.png</file>
+        <file>icons/ic_arrow_right_thick_red.png</file>
+        <file>icons/ic_arrow_up_thick_blue.png</file>
+        <file>icons/ic_plus_thick_green.png</file>
+    </qresource>
+</RCC>

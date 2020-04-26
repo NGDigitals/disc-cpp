@@ -1,0 +1,71 @@
+{
+    // See https://go.microsoft.com/fwlink/?LinkId=733558 
+    // for the documentation about the tasks.json format
+    //brew switch openssl 1.0.2r - Possible openssl error
+    "version": "2.0.0",
+    "tasks": [
+        {
+            "type": "shell",
+            "label": "Clang++ Build Active File",
+            "command": "/usr/bin/clang++",
+            "args": [
+                "-I/usr/local/Cellar/boost/1.72.0_1/include/",
+                "-L/usr/local/Cellar/boost/1.72.0_1/lib/",
+                "-I/usr/local/Cellar/openssl/1.0.2r/include/",
+                "-L/usr/local/Cellar/openssl/1.0.2r/lib/",
+                "-I/usr/local/Cellar/cpprestsdk/2.10.15/include/",
+                "-L/usr/local/Cellar/cpprestsdk/2.10.15/lib/",
+                "-lssl", 
+                "-lcrypto", 
+                "-lcpprest", 
+                "-lboost_system", 
+                "-lboost_thread-mt", 
+                "-lboost_chrono-mt",
+                 "-g",
+                "$(find",
+                "${fileDirname}",
+                "-type",
+                "f",
+                "-iregex",
+                "'.*\\.cpp'",
+                "-not",
+                "-path",
+                "'*/qt/*')",
+                //"'.*\\.cpp')",
+                // "${file}",
+                "-std=c++17",
+                "-stdlib=libc++",
+                "-o",
+                "${workspaceFolderBasename}"
+                //"${fileDirname}/${fileBasenameNoExtension}"
+            ],
+            // "options": {
+            //     "cwd": "/usr/bin"
+            // },
+            // "problemMatcher": [
+            //     //"$gcc"
+            // ],
+            // "group": {
+            //     "kind": "build",
+            //     "isDefault": true
+            // }
+        },
+        {
+            "type": "shell",
+            "label": "Build Qt",
+            "command": "make /f ${workspaceFolderBasename}/Makefile target1",
+            "options": {
+                "cwd": "${workspaceFolderBasename}"
+            }
+        },
+        {
+            "type": "shell",
+            "label": "Run Output File",
+            "command": "./${workspaceFolderBasename}",
+            "dependsOn": [
+                "Clang++ Build Active File"
+            ],
+            "problemMatcher": []
+        }
+    ]
+}
