@@ -30,6 +30,10 @@ int main(int argc, char **argv){
         }
         if (aResult.count("new")){
             std::string sName = aResult["label"].as<std::string>();
+            if (!Util::IsAlphaNum(sName)){
+                std::cout << "Invalid node name" << std::endl;
+                exit(0);
+            }
             const std::string sHost = aResult["server"].as<std::string>();
             const int nPort = aResult["port"].as<int>();
             if (!Node::isIPv4(sHost)){
@@ -42,7 +46,7 @@ int main(int argc, char **argv){
             Node nNode = Node(sName, cAddress, Util::RandomString(10));
             Server sServer (nNode);
         }else if (aResult.count("client") && aResult.count("label")){
-            std::string sInterface = aResult["client"].as<std::string>();
+            std::string sClient = aResult["client"].as<std::string>();
             std::string sName = aResult["label"].as<std::string>();
             Node nNode = Node::GetInstance(sName);
             if(nNode.GetName().empty()){
@@ -50,7 +54,7 @@ int main(int argc, char **argv){
                 exit(0);
             }else{
                 int nOption;
-                if(sInterface.compare("cli") == 0){
+                if(sClient.compare("cli") == 0){
                     do{
                         std::cout << std::endl << "Select an option:" << std::endl;
                         for ( const auto &aPair : constant::CLIENT_OPTIONS_MAP ) {

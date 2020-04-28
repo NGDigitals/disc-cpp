@@ -4,16 +4,20 @@
 #include <iostream>
 
 class Wallet {
-    public:
-    std::string _sSymbol;
-    char * _cPublicKey;
-    char * _cPrivateKey;
+public:
+    Wallet(){};
+    void GenerateKeys();
+    char* CreateAddress() const;
+    int VerifyAddress(char* base64Address) const;
+    unsigned char* GetPublicKey() const;
+    void SetPublicKey(unsigned char* sPublicKey);
+    unsigned char* GetPrivateKey() const;
+    void SetPrivateKey(unsigned char* sPrivateKey);
 
-    Wallet(){}
-    Wallet(std::string _sSymbol);
-    //~Wallet(void);
 private:
-    void _GenerateKeys();
+    unsigned char *_cPublicKey;
+    unsigned char *_cPrivateKey;
+    unsigned char *_cAddress;
 };
 
 #endif //WALLET_H

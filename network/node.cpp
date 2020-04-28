@@ -5,112 +5,79 @@
 #include "client.hpp"
 #include "../block/wallet.hpp"
 
-// std::ifstream iFile(_sWalletsFilePath, std::ios::in);
-// if(iFile.is_open()){
-//     Wallet wWallet;
-//     while( iFile >> wWallet){
-//         _vWallets.emplace_back(wWallet);
-//     }
-//     iFile.close();
-//     for ( const auto &wallet : _vWallets ) 
-//         std::cout << "Wallet - " << wallet._sSymbol << std::endl;
-// }
+const std::string Node::MASTER_NAME = "MASTER";
 
-// const char * Node::_cInstancePath = "storage/%s.dat";
+const std::string Node::PATH = "/network/auth";
+const std::string Node::PATH_API = "/api/v1";
+const std::string Node::PATH_NETWORK = "/network";
+const std::string Node::PATH_AUTH = "/network/auth";
+const std::string Node::PATH_BROADCAST = "/network/broadcast";
+
+const char * Node::_cPeersPath = "storage/peers-%s.dat";
 const char * Node::_cWalletsPath = "storage/wallets-%s.dat";
-const char * Node::_cPeerNodesPath = "storage/nodes-%s.dat";
 
 std::ostream& operator<< ( std::ostream& oStream, const Node& nNode ){  
     return oStream << nNode.GetName() << std::endl << nNode.GetAddress()  << std::endl << nNode.GetToken();
 }
 
 std::ostream& operator<< ( std::ostream& oStream, const Wallet& wWallet ){
-    return oStream << wWallet._sSymbol << std::endl << wWallet._cPublicKey << std::endl << wWallet._cPrivateKey << std::endl << std::endl;
+    return oStream << wWallet.GetPublicKey() << std::endl << wWallet.GetPrivateKey() << std::endl << std::endl;
 }
 
-std::ostream& operator<< ( std::ostream& oStream, const PeerNode& pNode ){
-    return oStream << pNode.sName << std::endl << pNode.sAddress  << std::endl << pNode.sToken << std::endl << std::endl;
-}
+// std::ostream& operator<< ( std::ostream& oStream, const PeerNode& pNode ){
+//     return oStream << pNode.nNode.GetName() << std::endl << pNode.nNode.GetAddress()  << std::endl << pNode.nNode.GetToken() << std::endl << std::endl;
+// }
 
 std::istream& operator>> ( std::istream& iStream, Node& nNode ){
     std::string sName, sAddress, sToken;
-    if( std::getline( iStream, sName ) && std::getline( iStream, sAddress) && std::getline( iStream, sToken)
-        && (!sName.empty() && !sAddress.empty() && !sToken.empty())){
+    while(std::getline( iStream, sName) && std::getline(iStream, sAddress) && std::getline(iStream, sToken) && 
+            (sName.empty() || sAddress.empty() || sToken.empty()))
+        ;
+    if(std::getline( iStream, sName ) && std::getline( iStream, sAddress) && std::getline( iStream, sToken)){
         nNode.SetName(sName);
         nNode.SetAddress(sAddress);
         nNode.SetToken(sToken);
-    }else{
+    }else
         nNode = {};
-    }
     return iStream;
 }
 
 inline std::istream& operator>> ( std::istream& iStream, Wallet& wWallet ){
-    // while( std::getline( iStream, wWallet._sSymbol ) && 
-    //         (wWallet._sSymbol.empty() || !wWallet._cPublicKey || !wWallet._cPrivateKey))
-    //     ;
     std::string sPublicKey, sPrivateKey;
-    if( std::getline( iStream, wWallet._sSymbol ) && std::getline( iStream, sPublicKey) && 
-            std::getline(iStream, sPrivateKey)){
-        wWallet._cPublicKey = strdup(sPublicKey.c_str());
-        wWallet._cPrivateKey = strdup(sPrivateKey.c_str());
+    while( std::getline( iStream, sPublicKey ) && std::getline( iStream, sPublicKey ) && 
+            (sPublicKey.empty() || sPrivateKey.empty()))
+        ;
+    if( std::getline( iStream, sPublicKey) && std::getline(iStream, sPrivateKey)){
+        wWallet.SetPublicKey((unsigned char*)strdup(sPublicKey.c_str()));
+        wWallet.SetPrivateKey((unsigned char*)strdup(sPrivateKey.c_str()));
     }else 
-        wWallet = Wallet();
+        wWallet = {};
     return iStream;
 }
 
-std::istream& operator>> ( std::istream& iStream, PeerNode& pNode){
-    while(std::getline( iStream, pNode.sName ) && std::getline( iStream, pNode.sAddress) && std::getline( iStream, pNode.sToken) && 
-            (pNode.sName.empty() || !pNode.sAddress.empty() || !pNode.sToken.empty()))
-        ;
-    if(std::getline( iStream, pNode.sName ) && std::getline( iStream, pNode.sAddress) && std::getline( iStream, pNode.sToken))
-        ;
-    else
-        pNode = {};
-    return iStream;
-}
-
-// std::istream& operator>> ( std::istream& iStream, PeerNode& pNode ){
-//     while( std::getline( iStream, pNode.sName ) && (pNode.sName.empty() || pNode.sAddress.empty() || pNode.sToken.empty()))
+// std::istream& operator>> ( std::istream& iStream, PeerNode& pNode){
+//     std::string sName, sAddress, sToken;
+//     while(std::getline( iStream, sName) && std::getline(iStream, sAddress) && std::getline(iStream, sToken) && 
+//             (sName.empty() || sAddress.empty() || sToken.empty()))
 //         ;
-//     if( std::getline( iStream, pNode.sName ) && std::getline( iStream, pNode.sAddress) && std::getline( iStream, pNode.sToken))
-//         ;
-//     else 
+//     if(std::getline( iStream, sName ) && std::getline( iStream, sAddress) && std::getline( iStream, sToken)){
+//         pNode.nNode.SetName(sName);
+//         pNode.nNode.SetAddress(sAddress);
+//         pNode.nNode.SetToken(sToken);
+//     }else
 //         pNode = {};
 //     return iStream;
 // }
 
-Node::Node(const Node & nNode){
-    _sName = nNode._sName;
-    _sToken = nNode._sToken;
-    _sAddress = nNode._sAddress;
-}
-
-Node::Node(const std::string sName, const std::string sAddress, const std::string sToken){
-    Node nNode = Node::GetInstance(sName);
-    if(!nNode._sName.empty()){
-        *this = nNode;
-        std::cout << "Existing Node Token..." << _sToken << std::endl;
-    }else{
-        _sName = sName;
-        _sToken = sToken;
-        _sAddress = sAddress;
-        std::cout << "New Node Token..." << _sToken << std::endl;
-        _CreatePeerNodes();
-        //_SaveInstance();
-        //_InitializeSetup();
-    }
-}
-
-Node Node::GetInstance(std::string sName){
+Node Node::GetInstance(const std::string sName){
     char cFileName[25];
-    sprintf(cFileName, Node::_cPeerNodesPath, sName.c_str());
+    sprintf(cFileName, Node::_cPeersPath, sName.c_str());
     std::ifstream iFile(cFileName, std::ios::in);
     Node nNode;
     if(iFile.is_open()){
         while(!iFile.eof()){
             iFile >> nNode;
-            if(sName.compare(nNode._sName)==0)
+            if(sName.compare(nNode.GetName())==0)
                 break;
         }
     }
@@ -118,57 +85,94 @@ Node Node::GetInstance(std::string sName){
     return nNode;
 }
 
-void Node::_CreatePeerNodes(){
-    PeerNode pNode(_sName, _sAddress, _sToken);
-    UpdatePeerNodes(pNode);
-}
-
-bool Node::UpdatePeerNodes(const PeerNode pNode){
-    sprintf(_cPeerNodesFile, Node::_cPeerNodesPath, _sName.c_str());
-    std::ofstream oFile(_cPeerNodesFile, std::ios::app);
-    bool updated = false;
-    if(oFile.is_open()){
-        _mPeerNodes[pNode.sName] = pNode;
-        for ( const auto &[pnKey, pnValue] : _mPeerNodes ) oFile << pnValue;
-        updated = true;
-    }
-    oFile.close();
-    return updated;
-}
-
-// void Node::_SaveInstance(){
-//     std::ofstream oFile(_cInstanceFile, std::ios::out);
-//     if(oFile.is_open()) oFile << Node(*this);
-//     oFile.close();
-// }
-
-// void Node::_InitializeSetup(){
-//     CreateWallet();
-//     //_CreatePeerNodes();
-//     // if(_sName == "MASTER"){
-//     //     PeerNode pNode("BISC-EPL", "http://0.0.0.0:5001", "FwzrFD9A6S");
-//     //     _AuthorizeNode(pNode);
-//     //     PeerNode pNode1("BISC-UCL", "http://0.0.0.0:5002", "UJEv9XH4B6");
-//     //     _AuthorizeNode(pNode1);
-//     // }
-// }
-
-void Node::CreateWallet(){
-    _wWallet = Wallet(_sName);
-    UpdateWallets(_wWallet);
-}
-
-bool Node::UpdateWallets(const Wallet wWallet){
+Node::Node(const Node & nNode){
+    _sName = nNode.GetName();
+    _sToken = nNode.GetToken();
+    _sAddress = nNode.GetAddress();
+    sprintf(_cPeersFile, Node::_cPeersPath, _sName.c_str());
     sprintf(_cWalletsFile, Node::_cWalletsPath, _sName.c_str());
-    std::ofstream oFile(_cWalletsFile, std::ios::app);
+}
+
+Node::Node(const std::string sName, const std::string sAddress, const std::string sToken){
+    Node nNode = Node::GetInstance(sName);
+    sprintf(_cPeersFile, Node::_cPeersPath, sName.c_str());
+    sprintf(_cWalletsFile, Node::_cWalletsPath, sName.c_str());
+    if(!nNode.GetName().empty()){
+        *this = nNode;
+        std::cout << "Existing Node Token..." << _sToken << std::endl;
+    }else{
+        _sName = sName;
+        _sToken = sToken;
+        _sAddress = sAddress;
+        std::cout << "New Node Token..." << _sToken << std::endl;
+        AddPeer(*this);
+    }
+}
+
+std::map<std::string, Node> Node::GetPeers() const{
+    std::ifstream iFile(_cPeersFile, std::ios::in);
+    std::map<std::string, Node> mPeers;
+    if(iFile.is_open()){
+        Node nNode;
+        while(!iFile.eof()){
+            iFile >> nNode;
+            if(!nNode.GetName().empty() && !nNode.GetAddress().empty() && !nNode.GetToken().empty())
+                mPeers[nNode.GetName()] = nNode; 
+        }
+    }
+    iFile.close();
+    return mPeers;
+}
+
+bool Node::AddPeer(const Node& nNode){
     bool updated = false;
+    std::ofstream oFile(_cPeersFile, std::ios::out);
     if(oFile.is_open()){
-        oFile << wWallet;
-        _vWallets.emplace_back(wWallet);
+        std::map<std::string, Node> mPeers = GetPeers();
+        mPeers[nNode.GetName()] = nNode;
+        for ( const auto &[aKey, aValue] : mPeers){
+            oFile << aValue;
+        }
         updated = true;
     }
     oFile.close();
     return updated;
+}
+
+
+Wallet Node::CreateWallet(){
+    Wallet wWallet;
+    wWallet.GenerateKeys();
+    AddWallet(wWallet);
+    return wWallet;
+}
+
+bool Node::AddWallet(const Wallet wWallet){
+    std::ofstream oFile(_cWalletsFile, std::ios::out);
+    bool updated = false;
+    if(oFile.is_open()){
+        std::map<unsigned char*, Wallet> mWallets = GetWallets();
+        mWallets[wWallet.GetPublicKey()] = wWallet;
+        for ( const auto &[pnKey, pnValue] : mWallets ) oFile << pnValue;
+        updated = true;
+    }
+    oFile.close();
+    return updated;
+}
+
+std::map<unsigned char*, Wallet> Node::GetWallets() const{
+    std::ifstream iFile(_cWalletsFile, std::ios::in);
+    std::map<unsigned char*, Wallet> mWallets;
+    if(iFile.is_open()){
+        Wallet wWallet;
+        while(!iFile.eof()){
+            iFile >> wWallet;
+            if(strlen((char*)wWallet.GetPublicKey()) == 0 && strlen((char*)wWallet.GetPrivateKey()) == 0)
+                mWallets[wWallet.GetPublicKey()] = wWallet; 
+        }
+    }
+    iFile.close();
+    return mWallets;
 }
 
 // void Node::_BroadcastWallet(const web::json::value jWallet) const{
@@ -188,61 +192,57 @@ bool Node::UpdateWallets(const Wallet wWallet){
 //     }
 // }
 
-// void Node::_BroadcastPeerNode(PeerNode pNode) const{
-//     for(const auto [pKey, pValue] : _mPeerNodes){
-//         if(_sName.compare(pKey) != 0 && _sAddress.compare(pValue.sAddress)){
-//             web::http::client::http_client client(pValue.sAddress + 
-//                         node::constant::NETWORK_BROADCAST_PATH.begin() + "/peers");
-//             web::json::value jNode;
-//             jNode["name"] = web::json::value::string(pNode.sName);
-//             jNode["address"] = web::json::value::string(pNode.sAddress);
-//             jNode["token"] = web::json::value::string(pNode.sToken);
-//             web::json::value jObject;
-//             jObject["_token"] = web::json::value::string(_sToken);
-//             jObject["node"] = web::json::value::array({jNode});
-//             // _cClient.MakeRequest(client, web::http::methods::POST, jObject, 
-//             //     [this](web::json::value jResponse){
-//             //         std::cout << jResponse.at("message")  << std::endl;
-//             //     }
-//             // );
-//         }
-//     }
-// }
+void Node::_BroadcastNode(const Node& nNode) const{
+    std::map<std::string, Node> mPeers = GetPeers();
+    for(const auto [pKey, pValue] : mPeers){
+        if(_sName.compare(pKey) != 0 && _sAddress.compare(pValue.GetAddress())){
+            std::cout << "Broadcasting..." <<  pValue.GetAddress() << std::endl;
+            web::http::client::http_client client(pValue.GetAddress() + 
+                        Node::PATH_BROADCAST + "/peers");
+            web::json::value jNode;
+            jNode["name"] = web::json::value::string(nNode.GetName());
+            jNode["address"] = web::json::value::string(nNode.GetAddress());
+            jNode["token"] = web::json::value::string(nNode.GetToken());
+            web::json::value jObject;
+            jObject["_token"] = web::json::value::string(_sToken);
+            jObject["node"] = web::json::value::array({jNode});
+            // _cClient.MakeRequest(client, web::http::methods::POST, jObject, 
+            //     [this](web::json::value jResponse){
+            //         std::cout << jResponse.at("message")  << std::endl;
+            //     }
+            // );
+        }
+    }
+}
 
-bool Node::AuthorizeNode(const PeerNode pNode){
-    web::http::client::http_client client(pNode.sAddress + 
-                        node::constant::NETWORK_AUTH_PATH.begin());
+bool Node::AuthorizeNode(const Node& nNode){
+    web::http::client::http_client client(nNode.GetAddress() + 
+                        Node::PATH_AUTH);
     web::json::value jObject;
-    jObject["name"] = web::json::value::string(pNode.sName);
-    jObject["token"] = web::json::value::string(pNode.sToken);
+    jObject["name"] = web::json::value::string(nNode.GetName());
+    jObject["token"] = web::json::value::string(nNode.GetToken());
     Client::HandleRequest(client, web::http::methods::POST, jObject, 
-        [this, pNode](web::json::value jResponse){  
-            std::cout << "Authorization returned..."  << std::endl;
+        [this, nNode](web::json::value jResponse){  
             bool bSuccess = jResponse.at("success").as_bool();
-            std::cout << "Authorization returned...1"  << std::endl;
             if(bSuccess){
-                std::cout << "Authorization returned...2"  << std::endl;
                 std::cout << jResponse.at("message")  << std::endl;
-                std::cout << "Authorization returned...3"  << std::endl;
-                // web::json::value jWallet = jResponse.at("wallet");
-                // Wallet wWallet(jWallet[0].at("symbol").as_string());
-                // strcpy(wWallet._cPublicKey, jWallet[0].at("public_key").as_string().c_str());
-                // strcpy(wWallet._cPrivateKey, jWallet[0].at("private_key").as_string().c_str());
-                //std::vector<Wallet> vWallets(this->_vWallets); //Create copy of wallets
-                //std::map<std::string, PeerNode> mPeerNodes(this->_mPeerNodes); //Create copy of peer nodes
-                //vWallets.emplace_back(wWallet); //Update wallets copy
-                //mPeerNodes[pNode.sName] = PeerNode(pNode.sName, pNode.sAddress, pNode.sToken); //Update peer nodes copy
-                //Update wallets and peer nodes with copies
-                // if(this->UpdateWallets(wWallet) && this->UpdatePeerNodes(pNode)){
-                //     //this->_BroadcastWallet(jWallet[0]);
-                //     //this->_BroadcastPeerNode(pNode);
-                // }else{
-                    // std::cout << "An error occurred while updating node data" << std::endl;
-                // }
+                web::json::value jWallet = jResponse.at("wallet");
+                Wallet wWallet;
+                wWallet.SetPublicKey((unsigned char*)jWallet[0].at("public_key").as_string().c_str());
+                wWallet.SetPrivateKey((unsigned char*)jWallet[0].at("public_key").as_string().c_str());
+                std::map<std::string, Node> mPeers = this->GetPeers();
+                std::map<unsigned char*, Wallet> mWallets = this->GetWallets();
+                mPeers[nNode.GetName()] = nNode;
+                mWallets[wWallet.GetPublicKey()] = wWallet;
+                if(this->AddWallet(wWallet) && this->AddPeer(nNode)){
+                    std::cout << "Broadcasting..."  << std::endl;
+                    // this->_BroadcastWallet(jWallet[0]);
+                    // this->_BroadcastPeerNode(nNode);
+                }else{
+                    std::cout << "An error occurred while updating node data" << std::endl;
+                }
             }else{
-                std::cout << "Authorization returned...4"  << std::endl;
                 std::cout << jResponse.at("message")  << std::endl;
-                std::cout << "Authorization returned...5"  << std::endl;
             }
         }
     );
@@ -259,10 +259,6 @@ std::string Node::GetToken() const{
 
 std::string Node::GetAddress() const{
     return _sAddress;
-}
-
-Wallet Node::GetWallet() const{
-    return _wWallet;
 }
 
 void Node::SetName(std::string sName){

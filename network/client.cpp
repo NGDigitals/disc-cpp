@@ -12,8 +12,7 @@ void Client::HandleCLI(Node &nNode, int nOption){
          std::cin >> sAddress;
          std::cout << "Enter Node Token: ";
          std::cin >> sToken;
-         PeerNode pNode(sName, sAddress, sToken);
-         nNode.AuthorizeNode(pNode);
+         nNode.AuthorizeNode(Node(sName, sAddress, sToken));
       }
       break;
       case constant::CLIENT_OPTIONS::CREATE_WALLET:{
