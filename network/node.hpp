@@ -9,7 +9,7 @@
 #include <cpprest/http_client.h>
 #pragma comment(lib, "cpprest_2_10")
 
-#include "../block/wallet.hpp"
+#include "../wallet/cache.hpp"
 
 class Node {
 public:
@@ -20,15 +20,16 @@ public:
     std::string GetName() const;
     std::string GetToken() const;
     std::string GetAddress() const;
+    Cache GetCache() const;
     std::map<std::string, Node> GetPeers() const;
-    std::map<unsigned char*, Wallet> GetWallets() const;
+    std::map<std::string, Cache> GetCaches() const;
 
     void SetName(std::string sName);
     void SetToken(std::string sName);
     void SetAddress(std::string sName);
     
-    Wallet CreateWallet();
-    bool AddWallet(const Wallet wWallet);
+    Cache CreateCache();
+    bool AddCache(const Cache cCache);
     bool AddPeer(const Node& pNode);
     bool AuthorizeNode(const Node& nNode);
 
@@ -40,21 +41,21 @@ private:
     std::string _sName;
     std::string _sToken;
     std::string _sAddress;
-    // std::string _sPeersPath;
-    // std::string _sWalletsPath;
-
+    
+    char _cCachesFile[25];
     char _cPeersFile[25];
     char _cWalletsFile[25];
 
+    static const char *_cCachesPath;
+    static const char *_cPeersPath;
+    static const char *_cWalletsPath;
+    
     static const std::string MASTER_NAME;
     static const std::string PATH;
     static const std::string PATH_API;
     static const std::string PATH_NETWORK;
     static const std::string PATH_AUTH;
     static const std::string PATH_BROADCAST;
-
-    static const char *_cPeersPath;
-    static const char *_cWalletsPath;
     
     void _InitializeSetup();
     void _GenerateToken();

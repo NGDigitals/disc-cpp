@@ -3,7 +3,8 @@
 
 #include "node.hpp"
 #include "client.hpp"
-#include "../block/wallet.hpp"
+#include "../wallet/cache.hpp"
+#include "../wallet/wallet.hpp"
 
 const std::string Node::MASTER_NAME = "MASTER";
 
@@ -13,27 +14,28 @@ const std::string Node::PATH_NETWORK = "/network";
 const std::string Node::PATH_AUTH = "/network/auth";
 const std::string Node::PATH_BROADCAST = "/network/broadcast";
 
-const char * Node::_cPeersPath = "storage/peers-%s.dat";
-const char * Node::_cWalletsPath = "storage/wallets-%s.dat";
+const char * Node::_cCachesPath = "storage/cache-%s.dat";
+const char * Node::_cPeersPath = "storage/peer-%s.dat";
+const char * Node::_cWalletsPath = "storage/wallet-%s.dat";
 
 std::ostream& operator<< ( std::ostream& oStream, const Node& nNode ){  
-    return oStream << nNode.GetName() << std::endl << nNode.GetAddress()  << std::endl << nNode.GetToken();
+    return oStream << nNode.GetName() << std::endl << nNode.GetAddress()  << std::endl << nNode.GetToken() << std::endl << std::endl;
+}
+
+std::ostream& operator<< ( std::ostream& oStream, const Cache& cCache ){
+    return oStream << cCache.GetName() << std::endl << cCache.GetPublicKey() << cCache.GetPrivateKey() << std::endl << std::endl;
 }
 
 std::ostream& operator<< ( std::ostream& oStream, const Wallet& wWallet ){
     return oStream << wWallet.GetPublicKey() << std::endl << wWallet.GetPrivateKey() << std::endl << std::endl;
 }
 
-// std::ostream& operator<< ( std::ostream& oStream, const PeerNode& pNode ){
-//     return oStream << pNode.nNode.GetName() << std::endl << pNode.nNode.GetAddress()  << std::endl << pNode.nNode.GetToken() << std::endl << std::endl;
-// }
-
 std::istream& operator>> ( std::istream& iStream, Node& nNode ){
-    std::string sName, sAddress, sToken;
-    while(std::getline( iStream, sName) && std::getline(iStream, sAddress) && std::getline(iStream, sToken) && 
-            (sName.empty() || sAddress.empty() || sToken.empty()))
+    std::string sLine;
+    while(std::getline( iStream, sLine) && sLine.empty())
         ;
-    if(std::getline( iStream, sName ) && std::getline( iStream, sAddress) && std::getline( iStream, sToken)){
+    std::string sName = sLine, sAddress, sToken;
+    if(std::getline( iStream, sAddress) && std::getline( iStream, sToken)){
         nNode.SetName(sName);
         nNode.SetAddress(sAddress);
         nNode.SetToken(sToken);
@@ -42,7 +44,32 @@ std::istream& operator>> ( std::istream& iStream, Node& nNode ){
     return iStream;
 }
 
-inline std::istream& operator>> ( std::istream& iStream, Wallet& wWallet ){
+std::istream& operator>> ( std::istream& iStream, Cache& cCache ){
+    // std::string sName, sPublicKey, sPrivateKey;
+    // while( std::getline( iStream, sName ) && std::getline( iStream, sPublicKey ) && std::getline( iStream, sPublicKey ) && 
+    //         (sName.empty() || sPublicKey.empty() || sPrivateKey.empty()))
+    //     ;
+    // if( std::getline( iStream, sName) && std::getline( iStream, sPublicKey) && std::getline(iStream, sPrivateKey)){
+    //     cCache.SetName(sName);
+    //     cCache.SetPublicKey((unsigned char*)strdup(sPublicKey.c_str()));
+    //     cCache.SetPrivateKey((unsigned char*)strdup(sPrivateKey.c_str()));
+    // }else 
+    //     cCache = {};
+    // return iStream;
+    std::string sLine;
+    while(std::getline( iStream, sLine) && sLine.empty())
+        ;
+    std::string sName = sLine, sPublicKey, sPrivateKey;
+    if(std::getline( iStream, sAd) && std::getline( iStream, sToken)){
+        nNode.SetName(sName);
+        nNode.SetAddress(sAddress);
+        nNode.SetToken(sToken);
+    }else
+        nNode = {};
+    return iStream;
+}
+
+std::istream& operator>> ( std::istream& iStream, Wallet& wWallet ){
     std::string sPublicKey, sPrivateKey;
     while( std::getline( iStream, sPublicKey ) && std::getline( iStream, sPublicKey ) && 
             (sPublicKey.empty() || sPrivateKey.empty()))
@@ -55,20 +82,6 @@ inline std::istream& operator>> ( std::istream& iStream, Wallet& wWallet ){
     return iStream;
 }
 
-// std::istream& operator>> ( std::istream& iStream, PeerNode& pNode){
-//     std::string sName, sAddress, sToken;
-//     while(std::getline( iStream, sName) && std::getline(iStream, sAddress) && std::getline(iStream, sToken) && 
-//             (sName.empty() || sAddress.empty() || sToken.empty()))
-//         ;
-//     if(std::getline( iStream, sName ) && std::getline( iStream, sAddress) && std::getline( iStream, sToken)){
-//         pNode.nNode.SetName(sName);
-//         pNode.nNode.SetAddress(sAddress);
-//         pNode.nNode.SetToken(sToken);
-//     }else
-//         pNode = {};
-//     return iStream;
-// }
-
 Node Node::GetInstance(const std::string sName){
     char cFileName[25];
     sprintf(cFileName, Node::_cPeersPath, sName.c_str());
@@ -77,6 +90,7 @@ Node Node::GetInstance(const std::string sName){
     if(iFile.is_open()){
         while(!iFile.eof()){
             iFile >> nNode;
+            std::cout << "Node - " << nNode.GetName() << " : " << nNode.GetAddress() << std::endl;
             if(sName.compare(nNode.GetName())==0)
                 break;
         }
@@ -89,12 +103,14 @@ Node::Node(const Node & nNode){
     _sName = nNode.GetName();
     _sToken = nNode.GetToken();
     _sAddress = nNode.GetAddress();
+    sprintf(_cCachesFile, Node::_cCachesPath, _sName.c_str());
     sprintf(_cPeersFile, Node::_cPeersPath, _sName.c_str());
     sprintf(_cWalletsFile, Node::_cWalletsPath, _sName.c_str());
 }
 
 Node::Node(const std::string sName, const std::string sAddress, const std::string sToken){
     Node nNode = Node::GetInstance(sName);
+    sprintf(_cCachesFile, Node::_cCachesPath, sName.c_str());
     sprintf(_cPeersFile, Node::_cPeersPath, sName.c_str());
     sprintf(_cWalletsFile, Node::_cWalletsPath, sName.c_str());
     if(!nNode.GetName().empty()){
@@ -106,6 +122,7 @@ Node::Node(const std::string sName, const std::string sAddress, const std::strin
         _sAddress = sAddress;
         std::cout << "New Node Token..." << _sToken << std::endl;
         AddPeer(*this);
+        CreateCache();
     }
 }
 
@@ -140,39 +157,45 @@ bool Node::AddPeer(const Node& nNode){
 }
 
 
-Wallet Node::CreateWallet(){
-    Wallet wWallet;
-    wWallet.GenerateKeys();
-    AddWallet(wWallet);
-    return wWallet;
+Cache Node::CreateCache(){
+    Cache cCache(_sName);
+    cCache.GenerateKeys();
+    AddCache(cCache);
+    return cCache;
 }
 
-bool Node::AddWallet(const Wallet wWallet){
-    std::ofstream oFile(_cWalletsFile, std::ios::out);
+bool Node::AddCache(const Cache cCache){
+    std::ofstream oFile(_cCachesFile, std::ios::app);
     bool updated = false;
     if(oFile.is_open()){
-        std::map<unsigned char*, Wallet> mWallets = GetWallets();
-        mWallets[wWallet.GetPublicKey()] = wWallet;
-        for ( const auto &[pnKey, pnValue] : mWallets ) oFile << pnValue;
+        std::map<std::string, Cache> mCaches = GetCaches();
+        if(mCaches.count(cCache.GetName()) == 0) oFile << cCache;
         updated = true;
     }
     oFile.close();
     return updated;
 }
 
-std::map<unsigned char*, Wallet> Node::GetWallets() const{
-    std::ifstream iFile(_cWalletsFile, std::ios::in);
-    std::map<unsigned char*, Wallet> mWallets;
+Cache Node::GetCache() const{
+    std::map<std::string, Cache> mCaches = GetCaches();
+    if(mCaches.count(_sName) == 1)
+        return mCaches[_sName];
+    return {};
+}
+
+std::map<std::string, Cache> Node::GetCaches() const{
+    std::ifstream iFile(_cCachesFile, std::ios::in);
+    std::map<std::string, Cache> mCaches;
     if(iFile.is_open()){
-        Wallet wWallet;
+        Cache cCache;
         while(!iFile.eof()){
-            iFile >> wWallet;
-            if(strlen((char*)wWallet.GetPublicKey()) == 0 && strlen((char*)wWallet.GetPrivateKey()) == 0)
-                mWallets[wWallet.GetPublicKey()] = wWallet; 
+            iFile >> cCache;
+            if(!cCache.GetName().empty() && strlen((char*)cCache.GetPublicKey()) != 0 && strlen((char*)cCache.GetPrivateKey()) != 0)
+                mCaches[cCache.GetName()] = cCache; 
         }
     }
     iFile.close();
-    return mWallets;
+    return mCaches;
 }
 
 // void Node::_BroadcastWallet(const web::json::value jWallet) const{
@@ -226,15 +249,15 @@ bool Node::AuthorizeNode(const Node& nNode){
             bool bSuccess = jResponse.at("success").as_bool();
             if(bSuccess){
                 std::cout << jResponse.at("message")  << std::endl;
-                web::json::value jWallet = jResponse.at("wallet");
-                Wallet wWallet;
-                wWallet.SetPublicKey((unsigned char*)jWallet[0].at("public_key").as_string().c_str());
-                wWallet.SetPrivateKey((unsigned char*)jWallet[0].at("public_key").as_string().c_str());
+                web::json::value jCache = jResponse.at("cache");
+                Cache cCache;
+                cCache.SetPublicKey((unsigned char*)jCache[0].at("public_key").as_string().c_str());
+                cCache.SetPrivateKey((unsigned char*)jCache[0].at("public_key").as_string().c_str());
                 std::map<std::string, Node> mPeers = this->GetPeers();
-                std::map<unsigned char*, Wallet> mWallets = this->GetWallets();
+                std::map<std::string, Cache> mCaches = this->GetCaches();
                 mPeers[nNode.GetName()] = nNode;
-                mWallets[wWallet.GetPublicKey()] = wWallet;
-                if(this->AddWallet(wWallet) && this->AddPeer(nNode)){
+                mCaches[cCache.GetName()] = cCache;
+                if(this->AddCache(cCache) && this->AddPeer(nNode)){
                     std::cout << "Broadcasting..."  << std::endl;
                     // this->_BroadcastWallet(jWallet[0]);
                     // this->_BroadcastPeerNode(nNode);

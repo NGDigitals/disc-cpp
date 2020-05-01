@@ -8,7 +8,6 @@ namespace service::node{
     #include <cpprest/http_listener.h>
     #pragma comment(lib, "cpprest_2_10")
 
-    #include "../../block/wallet.hpp"
     #include "../../network/node.hpp"
 
     struct Broadcast {

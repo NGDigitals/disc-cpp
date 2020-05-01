@@ -16,7 +16,7 @@ void Client::HandleCLI(Node &nNode, int nOption){
       }
       break;
       case constant::CLIENT_OPTIONS::CREATE_WALLET:{
-         nNode.CreateWallet();
+         nNode.CreateCache();
       }
       break;
       default:

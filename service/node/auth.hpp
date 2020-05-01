@@ -19,16 +19,23 @@ namespace service::node{
             const std::string sName = jObject.at("name").as_string();
             const std::string sToken = jObject.at("token").as_string();
             if(sName.compare(nNode.GetName()) == 0 && sToken.compare(nNode.GetToken()) == 0){
-                Wallet wWallet = nNode.CreateWallet();
-                unsigned char * cPublicKey = wWallet.GetPublicKey();
-                unsigned char * cPrivateKey = wWallet.GetPrivateKey();
-                web::json::value jWallet;
-                jWallet["public_key"] = web::json::value::string(std::string((char *)cPublicKey));
-                jWallet["private_key"] = web::json::value::string(std::string((char *)cPrivateKey));
-                nStatusCode = web::http::status_codes::OK;
-                aResponse["success"] = web::json::value::boolean(true);
-                aResponse["wallet"] = web::json::value::array({jWallet});
-                aResponse["message"] = web::json::value::string("Node Authorized");
+                Cache cCache = nNode.GetCache();
+                if(!cCache.GetName().empty() && strlen((char*)cCache.GetPublicKey()) != 0 && strlen((char*)cCache.GetPrivateKey()) != 0){
+                    std::string sName = cCache.GetName();
+                    unsigned char * cPublicKey = cCache.GetPublicKey();
+                    unsigned char * cPrivateKey = cCache.GetPrivateKey();
+                    web::json::value jWallet;
+                    jWallet["public_key"] = web::json::value::string(std::string((char *)cPublicKey));
+                    jWallet["private_key"] = web::json::value::string(std::string((char *)cPrivateKey));
+                    nStatusCode = web::http::status_codes::OK;
+                    aResponse["success"] = web::json::value::boolean(true);
+                    aResponse["wallet"] = web::json::value::array({jWallet});
+                    aResponse["message"] = web::json::value::string("Node Authorized");
+                }else{
+                    nStatusCode = web::http::status_codes::OK;
+                    aResponse["success"] = web::json::value::boolean(false);
+                    aResponse["message"] = web::json::value::string("No Cache foudnfor this Node");
+                }
             }else{
                 nStatusCode = web::http::status_codes::OK;
                 aResponse["success"] = web::json::value::boolean(false);

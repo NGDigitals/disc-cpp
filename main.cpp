@@ -9,9 +9,7 @@
 #include "lib/cxxopts/cxxopts.hpp"
 
 int main(int argc, char **argv){
-
     cxxopts::Options options("\n", "");
-
     try{
         options.add_options()
             ("c, client", "Client to use - cli or cls", cxxopts::value<std::string>()->implicit_value("cli"))
